@@ -1,5 +1,6 @@
 package com.example.mycontacts;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -12,14 +13,19 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.room.Room;
 
 import com.example.mycontacts.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
 
+    private MyContactsDatabase myContactsDatabase;
+    private ArrayList<Contact> contactArrayList;
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
@@ -27,12 +33,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        myContactsDatabase = Room.databaseBuilder(getApplicationContext(), MyContactsDatabase.class,
+                "ContactsDb").build();
+
+        loadContacts();
+
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
 
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+        NavController navController = Navigation.findNavController(this,
+                R.id.nav_host_fragment_content_main);
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
@@ -43,6 +55,18 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+    }
+
+    private void loadContacts() {
+        new GetAllContactsAsyncTask().execute();
+    }
+
+    private void deleteContact(Contact contact) {
+        new DeleteContactAsyncTask().execute(contact);
+    }
+
+    private void addContact(Contact contact) {
+        new AddContactAsyncTask().execute(contact);
     }
 
     @Override
@@ -69,8 +93,36 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+        NavController navController = Navigation.findNavController(this,
+                R.id.nav_host_fragment_content_main);
         return NavigationUI.navigateUp(navController, appBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+
+    private class GetAllContactsAsyncTask extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            contactArrayList = (ArrayList<Contact>) myContactsDatabase.getContactDao().getAllContacts();
+            return null;
+        }
+    }
+
+    private class DeleteContactAsyncTask extends AsyncTask<Contact, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Contact... contacts) {
+            myContactsDatabase.getContactDao().deleteContact(contacts[0]);
+            return null;
+        }
+    }
+
+    private class AddContactAsyncTask extends AsyncTask<Contact, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Contact... contacts) {
+            myContactsDatabase.getContactDao().insertContact(contacts[0]);
+            return null;
+        }
     }
 }
