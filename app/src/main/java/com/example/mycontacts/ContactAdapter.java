@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactViewHolder> {
 
-    private ArrayList<Contact> contactArrayList;
+    private ArrayList<Contact> contactArrayList = new ArrayList<>();
 
     public void setContactArrayList(ArrayList<Contact> contactArrayList) {
         this.contactArrayList = contactArrayList;

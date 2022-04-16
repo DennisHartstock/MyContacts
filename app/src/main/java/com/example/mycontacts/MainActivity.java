@@ -1,40 +1,44 @@
 package com.example.mycontacts;
 
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
-
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
-import com.example.mycontacts.databinding.ActivityMainBinding;
-
-import android.view.Menu;
-import android.view.MenuItem;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+
     private MyContactsDatabase myContactsDatabase;
-    private ArrayList<Contact> contactArrayList;
+    private ArrayList<Contact> contactArrayList = new ArrayList<>();
     private ContactAdapter contactAdapter;
-    private AppBarConfiguration appBarConfiguration;
-    private ActivityMainBinding binding;
+
+//    private AppBarConfiguration appBarConfiguration;
+//    private ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -48,23 +52,82 @@ public class MainActivity extends AppCompatActivity {
 
         loadContacts();
 
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(view -> {
+            addAndEditContact(false, null, -1);
+        });
 
-        setSupportActionBar(binding.toolbar);
+//        binding = ActivityMainBinding.inflate(getLayoutInflater());
+//        setContentView(binding.getRoot());
+//
+//        setSupportActionBar(binding.toolbar);
+//
+//        NavController navController = Navigation.findNavController(this,
+//                R.id.nav_host_fragment_content_main);
+//        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
+//        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+//
+//        binding.fab.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+//            }
+//        });
+    }
 
-        NavController navController = Navigation.findNavController(this,
-                R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+    public void addAndEditContact(boolean isUpdated, Contact contact, int position) {
+        LayoutInflater layoutInflater = LayoutInflater.from(getApplicationContext());
+        View view = layoutInflater.inflate(R.layout.add_edit_contact, null);
 
-        binding.fab.setOnClickListener(new View.OnClickListener() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setView(view);
+
+        TextView contactTitleTextView = view.findViewById(R.id.contactTitleTextView);
+        EditText firstNameEditText = view.findViewById(R.id.firstNameEditText);
+        EditText lastNameEditText = view.findViewById(R.id.lastNameEditText);
+        EditText emailEditText = view.findViewById(R.id.emailEditText);
+        EditText phoneNumberEditText = view.findViewById(R.id.phoneNumberEditText);
+
+        contactTitleTextView.setText(!isUpdated ? "Add contact" : "Edit contact");
+
+        if (isUpdated && contact != null) {
+            firstNameEditText.setText(contact.getFirstName());
+            lastNameEditText.setText(contact.getLastName());
+            emailEditText.setText(contact.getEmail());
+            phoneNumberEditText.setText(contact.getPhoneNumber());
+        }
+
+        builder.setCancelable(false).setPositiveButton(!isUpdated ? "Save" : "Update", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+                if (TextUtils.isEmpty(firstNameEditText.getText().toString())) {
+                    Toast.makeText(MainActivity.this, "Enter first name", Toast.LENGTH_LONG).show();
+                } else if (TextUtils.isEmpty(lastNameEditText.getText().toString())) {
+                    Toast.makeText(MainActivity.this, "Enter last name", Toast.LENGTH_LONG).show();
+                } else if (TextUtils.isEmpty(emailEditText.getText().toString())) {
+                    Toast.makeText(MainActivity.this, "Enter email", Toast.LENGTH_LONG).show();
+                } else if (TextUtils.isEmpty(phoneNumberEditText.getText().toString())) {
+                    Toast.makeText(MainActivity.this, "Enter phone number", Toast.LENGTH_LONG).show();
+                } else {
+                    if (isUpdated && contact != null) {
+                        updateContact(firstNameEditText.getText().toString(),
+                                lastNameEditText.getText().toString(),
+                                emailEditText.getText().toString(),
+                                phoneNumberEditText.getText().toString(), position);
+                    } else {
+                        addContact(firstNameEditText.getText().toString(),
+                                lastNameEditText.getText().toString(),
+                                emailEditText.getText().toString(),
+                                phoneNumberEditText.getText().toString());
+                    }
+                }
             }
         });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     private void loadContacts() {
@@ -75,8 +138,21 @@ public class MainActivity extends AppCompatActivity {
         new DeleteContactAsyncTask().execute(contact);
     }
 
-    private void addContact(Contact contact) {
+    private void addContact(String firstName, String lastName, String email, String phoneNumber) {
+        Contact contact = new Contact(0, firstName, lastName, email, phoneNumber);
         new AddContactAsyncTask().execute(contact);
+    }
+
+    private void updateContact(String firstName, String lastName, String email, String phoneNumber, int position) {
+        Contact contact = contactArrayList.get(position);
+
+        contact.setFirstName(firstName);
+        contact.setLastName(lastName);
+        contact.setEmail(email);
+        contact.setPhoneNumber(phoneNumber);
+
+        new UpdateContactAsyncTask().execute(contact);
+        contactArrayList.set(position, contact);
     }
 
     @Override
@@ -101,13 +177,13 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this,
-                R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
-    }
+//    @Override
+//    public boolean onSupportNavigateUp() {
+//        NavController navController = Navigation.findNavController(this,
+//                R.id.nav_host_fragment_content_main);
+//        return NavigationUI.navigateUp(navController, appBarConfiguration)
+//                || super.onSupportNavigateUp();
+//    }
 
     private class GetAllContactsAsyncTask extends AsyncTask<Void, Void, Void> {
 
