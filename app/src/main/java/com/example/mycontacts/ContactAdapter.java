@@ -13,6 +13,12 @@ import java.util.ArrayList;
 public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactViewHolder> {
 
     private ArrayList<Contact> contactArrayList = new ArrayList<>();
+    private MainActivity mainActivity;
+
+    public ContactAdapter(ArrayList<Contact> contactArrayList, MainActivity mainActivity) {
+        this.contactArrayList = contactArrayList;
+        this.mainActivity = mainActivity;
+    }
 
     public void setContactArrayList(ArrayList<Contact> contactArrayList) {
         this.contactArrayList = contactArrayList;
@@ -36,6 +42,10 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
         holder.lastNameTextView.setText(contact.getLastName());
         holder.emailTextView.setText(contact.getEmail());
         holder.phoneNumberTextView.setText(contact.getPhoneNumber());
+
+        holder.itemView.setOnClickListener(view -> {
+            mainActivity.addAndEditContact(true, contact, position);
+        });
     }
 
     @Override
